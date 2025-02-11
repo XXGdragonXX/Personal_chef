@@ -1,5 +1,6 @@
 import streamlit as st
 import requests
+import time
 
 # Backend API URL
 BACKEND_URL = "http://127.0.0.1:8000/submit"
@@ -27,6 +28,14 @@ st.markdown(
         font-size: 16px !important;
         border-radius: 10px !important;
     }
+    .error-box {
+        background-color: #ffcccc;
+        color: #d8000c;
+        padding: 10px;
+        border-radius: 8px;
+        text-align: center;
+        font-weight: bold;
+    }
     </style>
     """,
     unsafe_allow_html=True,
@@ -36,16 +45,35 @@ st.markdown(
 st.markdown("<h1 class='stTitle'>🍽️ Personal COOKBOOK</h1>", unsafe_allow_html=True)
 st.write("### Find the perfect recipe based on your preference!")
 
-# Initialize session state for handling "Try Again"
+# Initialize session state
 if "recipes_list" not in st.session_state:
     st.session_state.recipes_list = []
     st.session_state.ingredients_list = []
     st.session_state.show_results = False
+    st.session_state.error_message = ""
 
 # User Input Method Selection
 st.write("---")
 st.subheader("📌 How would you like to get a recipe?")
 option = st.radio("", ("Recommend Dishes", "Enter a Dish Name", "Dinner Tonight"))
+
+# Function to send requests and handle errors
+def fetch_recipes(payload):
+    try:
+        with st.spinner("🔄 Fetching recipes... Please wait."):
+            response = requests.post(BACKEND_URL, json=payload)
+            time.sleep(1)  # Simulate processing delay
+
+        if response.status_code == 200:
+            data = response.json()
+            st.session_state.recipes_list = data.get("Recipes", [])
+            st.session_state.ingredients_list = data.get("ingredient_list", [])
+            st.session_state.show_results = True
+            st.session_state.error_message = ""
+        else:
+            st.session_state.error_message = "❌ Failed to fetch data. Please try again!"
+    except requests.exceptions.RequestException:
+        st.session_state.error_message = "🚨 Network error! Please check your connection and try again."
 
 # -----------------------------------------------
 # OPTION 1: RECOMMEND DISHES
@@ -67,15 +95,7 @@ if option == "Recommend Dishes":
                 "spice_level": 0,
                 "cooking_time": "none"
             }
-            response = requests.post(BACKEND_URL, json=payload)
-
-            if response.status_code == 200:
-                response_data = response.json()
-                st.session_state.recipes_list = response_data.get("Recipes", [])
-                st.session_state.ingredients_list = response_data.get("ingredient_list", [])
-                st.session_state.show_results = True
-            else:
-                st.error("❌ Failed to get recommended dishes. Please try again.")
+            fetch_recipes(payload)
         else:
             st.warning("⚠️ Please enter a cuisine.")
 
@@ -98,15 +118,7 @@ elif option == "Enter a Dish Name":
                 "spice_level": 0,
                 "cooking_time": "none"
             }
-            response = requests.post(BACKEND_URL, json=payload)
-
-            if response.status_code == 200:
-                response_data = response.json()
-                st.session_state.recipes_list = response_data.get("Recipes", [])
-                st.session_state.ingredients_list = response_data.get("ingredient_list", [])
-                st.session_state.show_results = True
-            else:
-                st.error("❌ Failed to fetch the recipe. Please try again.")
+            fetch_recipes(payload)
         else:
             st.warning("⚠️ Please enter a dish name.")
 
@@ -133,43 +145,39 @@ elif option == "Dinner Tonight":
             "spice_level": spice_level,
             "cooking_time": cooking_time
         }
-        response = requests.post(BACKEND_URL, json=payload)
-
-        if response.status_code == 200:
-            response_data = response.json()
-            st.session_state.recipes_list = response_data.get("Recipes", [])
-            st.session_state.ingredients_list = response_data.get("ingredient_list", [])
-            st.session_state.show_results = True
-        else:
-            st.error("❌ Could not find the best dish for tonight. Please try again.")
+        fetch_recipes(payload)
 
 # -----------------------------------------------
-# DISPLAY RESULTS IF RECIPES ARE RETRIEVED
+# DISPLAY RESULTS OR ERRORS
 # -----------------------------------------------
-if st.session_state.show_results and st.session_state.recipes_list:
+if st.session_state.error_message:
+    st.markdown(f"<div class='error-box'>{st.session_state.error_message}</div>", unsafe_allow_html=True)
+    if st.button("🔄 Try Again"):
+        st.session_state.error_message = ""
+        st.session_state.recipes_list = []
+        st.session_state.ingredients_list = []
+        st.session_state.show_results = False
+        st.rerun()
+
+elif st.session_state.show_results and st.session_state.recipes_list:
     st.subheader("🍴 Recommended Dishes:")
 
-    for i in range(len(st.session_state.recipes_list)):
-        recipe_data = st.session_state.recipes_list[i]  # Get recipe dict
-        dish_name = list(recipe_data.keys())[0]  # Extract dish name
-
-        steps = recipe_data.get(dish_name, [])  # Recipe steps
-        dish_ingredients = st.session_state.ingredients_list[i]  # Ingredients list
+    for i, recipe_data in enumerate(st.session_state.recipes_list):
+        dish_name = list(recipe_data.keys())[0]  
+        steps = recipe_data.get(dish_name, [])  
+        dish_ingredients = st.session_state.ingredients_list[i]  
 
         with st.expander(f"🥘 {dish_name} (Click to View)"):
-            # Display Ingredients
             st.markdown("**🛒 Ingredients:**")
             formatted_ingredients = "\n".join(f"- {item}" for item in dish_ingredients)
             st.markdown(f"{formatted_ingredients}")
 
-            # Display Recipe Steps
             st.markdown("**📜 Recipe Steps:**")
             formatted_steps = "\n\n".join(steps) if isinstance(steps, list) else steps.replace("\n", "\n\n")
             st.markdown(f"{formatted_steps}")
 
-    # Try Again Button
     if st.button("🔄 Try Again"):
         st.session_state.recipes_list = []
         st.session_state.ingredients_list = []
         st.session_state.show_results = False
-        st.rerun()  # Refresh the app state
+        st.rerun()

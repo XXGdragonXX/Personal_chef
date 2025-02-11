@@ -47,8 +47,10 @@ class Dish_recommender:
         )
         response_content = response.choices[0].message.content
         match = re.search(r"\{[\s\S]*\}", response_content)
+        print(match)
         if match:
-            json_string = match.group().strip()  
+            json_string = match.group().strip() 
+            print("This is the JSON STringggggg", json_string) 
             extracted_dict = json.loads(json_string) 
         else:
             extracted_dict = {"dish1":"Oaxacan mole"}
