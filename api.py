@@ -8,6 +8,16 @@ from best_dish_agent import best_Dish_recommender
 from fastapi.middleware.cors import CORSMiddleware
 
 
+import socket
+import streamlit as st
+
+host_name = socket.gethostname()
+host_ip = socket.gethostbyname(host_name)
+
+st.write(f"Backend is running at: http://{host_ip}:8000/submit")
+
+
+
 app = FastAPI()
 app.add_middleware(
     CORSMiddleware,
