@@ -14,7 +14,7 @@ import streamlit as st
 host_name = socket.gethostname()
 host_ip = socket.gethostbyname(host_name)
 
-print(f"Backend is running at: http://{host_ip}:8000/submit")
+st.write(f"Backend is running at: http://{host_ip}:8000/submit")
 
 
 
