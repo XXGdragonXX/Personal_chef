@@ -5,9 +5,17 @@ from ingredients_agent import ingredients_agent
 from recipe import recipes
 from best_dish_agent import best_Dish_recommender
 
+from fastapi.middleware.cors import CORSMiddleware
 
 
 app = FastAPI()
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Allow all origins (or specify Streamlit's domain)
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 class recipe_recommender(BaseModel):
