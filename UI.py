@@ -55,8 +55,8 @@ if "recipes_list" not in st.session_state:
 # User Input Method Selection
 st.write("---")
 st.subheader("📌 How would you like to get a recipe?")
-option = st.radio("", ("Recommend Dishes", "Enter a Dish Name", "Dinner Tonight"))
-
+option = st.radio("📌 Select a method to get a recipe:", 
+("Recommend Dishes", "Enter a Dish Name", "Dinner Tonight"))
 # Function to send requests and handle errors
 def fetch_recipes(payload):
     try:
