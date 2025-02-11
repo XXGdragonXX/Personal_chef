@@ -69,7 +69,7 @@ def fetch_recipes(payload):
 
         # if response.status_code == 200:
         if response:
-            data = response.json()
+            data = response
             st.session_state.recipes_list = data.get("Recipes", [])
             st.session_state.ingredients_list = data.get("ingredient_list", [])
             st.session_state.show_results = True
