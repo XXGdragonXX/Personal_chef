@@ -3,7 +3,7 @@ import requests
 import time
 
 # Backend API URL
-BACKEND_URL = "https://personalchef-mnhcl8h7as6w764fr97hw4.streamlit.app/submit"
+BACKEND_URL = "http://127.0.0.1:8000/submit"
 
 # Page Configuration
 st.set_page_config(page_title="Personal COOKBOOK", page_icon="🍽️", layout="centered")
