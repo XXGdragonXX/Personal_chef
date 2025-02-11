@@ -65,7 +65,7 @@ class recipe_recommender():
 
         
     # @app.post("/submit")
-    def main(self,data_dict):
+    def generate_recipe(self,data_dict):
         # data_dict = data.dict()
         if data_dict['key'] == 1:
             Recipes , ingredient_list = self.recommend_recipes_by_llm(data_dict)

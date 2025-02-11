@@ -1,7 +1,7 @@
 import streamlit as st
 import requests
 import time
-from api import main
+from api import recipe_recommender
 
 # Backend API URL
 # BACKEND_URL = "https://personalchef-backend.streamlit.app/submit"
@@ -63,7 +63,8 @@ def fetch_recipes(payload):
     try:
         with st.spinner("🔄 Fetching recipes... Please wait."):
             # response = requests.post(BACKEND_URL, json=payload)
-            response = main(payload)
+            gen_recipe = recipe_recommender()
+            response = gen_recipe.generate_recipe(payload)
             time.sleep(1)  # Simulate processing delay
 
         # if response.status_code == 200:
