@@ -1,9 +1,10 @@
 import streamlit as st
 import requests
 import time
+from api import main
 
 # Backend API URL
-BACKEND_URL = "https://personalchef-backend.streamlit.app/submit"
+# BACKEND_URL = "https://personalchef-backend.streamlit.app/submit"
 
 # Page Configuration
 st.set_page_config(page_title="Personal COOKBOOK", page_icon="🍽️", layout="centered")
@@ -61,10 +62,12 @@ option = st.radio("📌 Select a method to get a recipe:",
 def fetch_recipes(payload):
     try:
         with st.spinner("🔄 Fetching recipes... Please wait."):
-            response = requests.post(BACKEND_URL, json=payload)
+            # response = requests.post(BACKEND_URL, json=payload)
+            response = main(payload)
             time.sleep(1)  # Simulate processing delay
 
-        if response.status_code == 200:
+        # if response.status_code == 200:
+        if response:
             data = response.json()
             st.session_state.recipes_list = data.get("Recipes", [])
             st.session_state.ingredients_list = data.get("ingredient_list", [])
