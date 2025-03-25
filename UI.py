@@ -221,7 +221,7 @@ def results_page():
                     col1, col2 = st.columns([1, 2])
                     with col1:
                         st.image("https://source.unsplash.com/random/300x200/?food," + dish_name, 
-                                caption=dish_name, use_column_width=True)
+                                caption=dish_name, use_container_width=True)
                     with col2:
                         with st.expander("📝 Ingredients", expanded=True):
                             st.markdown("\n".join(f"- {ing}" for ing in ingredients))
