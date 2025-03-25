@@ -3,48 +3,92 @@ import requests
 import time
 from api import recipe_recommender
 
-# Backend API URL
-# BACKEND_URL = "https://personalchef-backend.streamlit.app/submit"
-
 # Page Configuration
-st.set_page_config(page_title="Personal COOKBOOK", page_icon="🍽️", layout="centered")
-
-# Custom Styling
-st.markdown(
-    """
-    <style>
-    .stTitle {
-        text-align: center;
-        font-size: 36px !important;
-        color: #FF5733;
-        font-weight: bold;
-    }
-    .stRadio > label {
-        font-size: 18px !important;
-    }
-    .stButton button {
-        width: 100%;
-        background-color: #FF5733 !important;
-        color: white !important;
-        font-size: 16px !important;
-        border-radius: 10px !important;
-    }
-    .error-box {
-        background-color: #ffcccc;
-        color: #d8000c;
-        padding: 10px;
-        border-radius: 8px;
-        text-align: center;
-        font-weight: bold;
-    }
-    </style>
-    """,
-    unsafe_allow_html=True,
+st.set_page_config(
+    page_title="Personal COOKBOOK", 
+    page_icon="🍽️", 
+    layout="wide",
+    initial_sidebar_state="expanded"
 )
 
-# App Title
-st.markdown("<h1 class='stTitle'>🍽️ Personal COOKBOOK</h1>", unsafe_allow_html=True)
-st.write("### Find the perfect recipe based on your preference!")
+# Custom Styling
+st.markdown("""
+    <style>
+    /* Main Container */
+    .main {
+        background-color: #f9f5f0;
+        padding: 2rem;
+        border-radius: 15px;
+    }
+    
+    /* Titles */
+    .title {
+        color: #e67e22;
+        text-align: center;
+        font-weight: 800;
+        margin-bottom: 1.5rem;
+    }
+    
+    /* Cards */
+    .recipe-card {
+        background: white;
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        transition: transform 0.2s;
+    }
+    .recipe-card:hover {
+        transform: translateY(-5px);
+    }
+    
+    /* Buttons */
+    .stButton>button {
+        background-color: #e67e22 !important;
+        color: white !important;
+        border-radius: 8px;
+        padding: 0.5rem 1rem;
+        font-weight: 600;
+        border: none;
+        width: 100%;
+        transition: all 0.3s;
+    }
+    .stButton>button:hover {
+        background-color: #d35400 !important;
+        transform: scale(1.02);
+    }
+    
+    /* Inputs */
+    .stTextInput>div>div>input {
+        border-radius: 8px !important;
+        padding: 10px !important;
+    }
+    
+    /* Tabs */
+    .stTabs [data-baseweb="tab-list"] {
+        gap: 10px;
+    }
+    .stTabs [data-baseweb="tab"] {
+        background: white;
+        border-radius: 8px 8px 0 0;
+        padding: 10px 20px;
+    }
+    .stTabs [aria-selected="true"] {
+        background-color: #e67e22;
+        color: white;
+    }
+    
+    /* Error Box */
+    .error-box {
+        background-color: #ffebee;
+        color: #c62828;
+        padding: 1rem;
+        border-radius: 8px;
+        border-left: 4px solid #c62828;
+        margin-bottom: 1rem;
+    }
+    </style>
+""", unsafe_allow_html=True)
 
 # Initialize session state
 if "recipes_list" not in st.session_state:
@@ -52,136 +96,180 @@ if "recipes_list" not in st.session_state:
     st.session_state.ingredients_list = []
     st.session_state.show_results = False
     st.session_state.error_message = ""
+    st.session_state.current_page = "home"
 
-# User Input Method Selection
-st.write("---")
-st.subheader("📌 How would you like to get a recipe?")
-option = st.radio("📌 Select a method to get a recipe:", 
-("Recommend Dishes", "Enter a Dish Name", "Dinner Tonight"))
-# Function to send requests and handle errors
+# Navigation
+def navigate_to(page):
+    st.session_state.current_page = page
+
+# Home Page
+def home_page():
+    st.markdown("<h1 class='title'>🍽️ Personal COOKBOOK</h1>", unsafe_allow_html=True)
+    st.markdown("<p style='text-align:center; font-size:18px; color:#666;'>Discover your next favorite recipe with AI-powered recommendations</p>", unsafe_allow_html=True)
+    
+    st.write("---")
+    
+    # Option Selection
+    st.subheader("✨ How would you like to find recipes?")
+    option = st.radio(
+        "Select an option:",
+        ("Recommend Dishes", "Search by Dish Name", "Dinner Tonight"),
+        horizontal=True,
+        label_visibility="collapsed"
+    )
+    
+    # Option 1: Recommend Dishes
+    if option == "Recommend Dishes":
+        with st.container():
+            st.subheader("🌍 Cuisine Recommendation")
+            col1, col2 = st.columns([3, 1])
+            with col1:
+                cuisine = st.text_input("Enter cuisine type:", placeholder="e.g., Italian, Indian, Mexican")
+            with col2:
+                num_dishes = st.selectbox("Number of dishes:", [1, 2, 3, 4, 5])
+            
+            if st.button("Get Recommendations", key="recommend_btn"):
+                if cuisine:
+                    payload = {
+                        "key": 1,
+                        "cuisine": cuisine,
+                        "number_of_recipes": str(num_dishes),
+                        "dish": "none",
+                        "ingredients": [],
+                        "diet_pref": "none",
+                        "spice_level": 0,
+                        "cooking_time": "none"
+                    }
+                    fetch_recipes(payload)
+                    navigate_to("results")
+                else:
+                    st.warning("Please enter a cuisine type")
+    
+    # Option 2: Search by Dish
+    elif option == "Search by Dish Name":
+        with st.container():
+            st.subheader("🔍 Search Specific Dish")
+            dish = st.text_input("Enter dish name:", placeholder="e.g., Chicken Tikka Masala")
+            
+            if st.button("Find Recipe", key="search_btn"):
+                if dish:
+                    payload = {
+                        "key": 2,
+                        "cuisine": "Default",
+                        "number_of_recipes": "1",
+                        "dish": dish,
+                        "ingredients": [],
+                        "diet_pref": "none",
+                        "spice_level": 0,
+                        "cooking_time": "none"
+                    }
+                    fetch_recipes(payload)
+                    navigate_to("results")
+                else:
+                    st.warning("Please enter a dish name")
+    
+    # Option 3: Dinner Tonight
+    else:
+        with st.container():
+            st.subheader("🌙 Dinner Tonight")
+            with st.expander("Tell us your preferences", expanded=True):
+                col1, col2 = st.columns(2)
+                with col1:
+                    cuisine_pref = st.selectbox("Preferred cuisine:", ["Indian", "Italian", "Chinese", "Mexican", "Surprise Me!"])
+                    diet_pref = st.radio("Diet:", ["Vegetarian", "Non-Vegetarian"])
+                with col2:
+                    spice_level = st.select_slider("Spice level:", options=["😊 Mild", "🌶️ Medium", "🔥 Hot", "💀 Extreme"])
+                    cooking_time = st.radio("Time available:", ["< 30 mins", "30-60 mins", "1+ hours"])
+            
+            if st.button("Plan My Dinner", key="dinner_btn"):
+                payload = {
+                    "key": 3,
+                    "cuisine": cuisine_pref,
+                    "number_of_recipes": "1",
+                    "dish": "none",
+                    "ingredients": [],
+                    "diet_pref": diet_pref,
+                    "spice_level": spice_level,
+                    "cooking_time": cooking_time
+                }
+                fetch_recipes(payload)
+                navigate_to("results")
+
+# Results Page
+def results_page():
+    st.markdown("<h1 class='title'>🍳 Your Recipe Recommendations</h1>", unsafe_allow_html=True)
+    
+    if st.button("← Back to Search", key="back_btn"):
+        navigate_to("home")
+    
+    st.write("---")
+    
+    if st.session_state.error_message:
+        st.markdown(f"<div class='error-box'>{st.session_state.error_message}</div>", unsafe_allow_html=True)
+    elif st.session_state.recipes_list:
+        tab1, tab2 = st.tabs(["Recipes", "Shopping List"])
+        
+        with tab1:
+            for i, recipe_data in enumerate(st.session_state.recipes_list):
+                dish_name = list(recipe_data.keys())[0]
+                steps = recipe_data.get(dish_name, [])
+                ingredients = st.session_state.ingredients_list[i]
+                
+                with st.container():
+                    st.markdown(f"### 🍲 {dish_name}")
+                    
+                    col1, col2 = st.columns([1, 2])
+                    with col1:
+                        st.image("https://source.unsplash.com/random/300x200/?food," + dish_name, 
+                                caption=dish_name, use_column_width=True)
+                    with col2:
+                        with st.expander("📝 Ingredients", expanded=True):
+                            st.markdown("\n".join(f"- {ing}" for ing in ingredients))
+                        
+                        with st.expander("👩‍🍳 Preparation Steps"):
+                            if isinstance(steps, list):
+                                for j, step in enumerate(steps, 1):
+                                    st.markdown(f"{j}. {step}")
+                            else:
+                                st.markdown(steps.replace("\n", "\n\n"))
+        
+        with tab2:
+            st.subheader("🛒 Complete Shopping List")
+            all_ingredients = set()
+            for ingredients in st.session_state.ingredients_list:
+                all_ingredients.update(ingredients)
+            
+            st.markdown("\n".join(f"- {ing}" for ing in sorted(all_ingredients)))
+            
+            if st.download_button(
+                "Download Shopping List",
+                "\n".join(sorted(all_ingredients)),
+                file_name="shopping_list.txt",
+                mime="text/plain"
+            ):
+                st.success("List downloaded!")
+
+# Request Handler
 def fetch_recipes(payload):
     try:
-        with st.spinner("🔄 Fetching recipes... Please wait."):
-            # response = requests.post(BACKEND_URL, json=payload)
+        with st.spinner("🔍 Finding the perfect recipes..."):
+            # Simulate API call
             gen_recipe = recipe_recommender()
             response = gen_recipe.generate_recipe(payload)
-            time.sleep(1)  # Simulate processing delay
+            time.sleep(1.5)  # Simulate processing delay
 
-        # if response.status_code == 200:
         if response:
-            data = response
-            st.session_state.recipes_list = data.get("Recipes", [])
-            st.session_state.ingredients_list = data.get("ingredient_list", [])
+            st.session_state.recipes_list = response.get("Recipes", [])
+            st.session_state.ingredients_list = response.get("ingredient_list", [])
             st.session_state.show_results = True
             st.session_state.error_message = ""
         else:
-            st.session_state.error_message = "❌ Failed to fetch data. Please try again!"
-    except requests.exceptions.RequestException:
-        st.session_state.error_message = "🚨 Network error! Please check your connection and try again."
+            st.session_state.error_message = "Failed to fetch recipes. Please try again later."
+    except Exception as e:
+        st.session_state.error_message = f"An error occurred: {str(e)}"
 
-# -----------------------------------------------
-# OPTION 1: RECOMMEND DISHES
-# -----------------------------------------------
-if option == "Recommend Dishes":
-    st.subheader("👨‍🍳 Get Recommended Dishes")
-    cuisine = st.text_input("🌍 Enter Cuisine (e.g., Italian, Indian, Mexican):")
-    num_dishes = st.slider("🔢 Select Number of Dishes:", 1, 10, 3)
-
-    if st.button("🍽️ Get Recipes"):
-        if cuisine:
-            payload = {
-                "key": 1,
-                "cuisine": cuisine,
-                "number_of_recipes": str(num_dishes),
-                "dish": "none",
-                "ingredients": [],
-                "diet_pref": "none",
-                "spice_level": 0,
-                "cooking_time": "none"
-            }
-            fetch_recipes(payload)
-        else:
-            st.warning("⚠️ Please enter a cuisine.")
-
-# -----------------------------------------------
-# OPTION 2: ENTER A DISH NAME
-# -----------------------------------------------
-elif option == "Enter a Dish Name":
-    st.subheader("🍲 Find Recipe for a Dish")
-    dish = st.text_input("🔍 Enter the dish name:")
-
-    if st.button("📜 Get Recipe"):
-        if dish:
-            payload = {
-                "key": 2,
-                "cuisine": "Default",
-                "number_of_recipes": "1",
-                "dish": dish,
-                "ingredients": [],
-                "diet_pref": "none",
-                "spice_level": 0,
-                "cooking_time": "none"
-            }
-            fetch_recipes(payload)
-        else:
-            st.warning("⚠️ Please enter a dish name.")
-
-# -----------------------------------------------
-# OPTION 3: DINNER TONIGHT (Guided Q&A)
-# -----------------------------------------------
-elif option == "Dinner Tonight":
-    st.subheader("🌙 Dinner Tonight Recommendation")
-
-    with st.expander("📌 Answer these questions to get the best dish!"):
-        cuisine_pref = st.selectbox("🌍 Preferred Cuisine:", ["Indian", "Italian", "Chinese", "Mexican", "Surprise Me!"])
-        diet_pref = st.radio("🍖 Diet Preference:", ["Vegetarian", "Non-Vegetarian"])
-        spice_level = st.slider("🌶️ Spice Level (1-5):", 1, 5, 3)
-        cooking_time = st.selectbox("⏳ Cooking Time:", ["< 20 mins", "20-40 mins", "40+ mins"])
-
-    if st.button("🔎 Find My Dinner"):
-        payload = {
-            "key": 3,
-            "cuisine": cuisine_pref,
-            "number_of_recipes": "1",
-            "dish": "none",
-            "ingredients": [],
-            "diet_pref": diet_pref,
-            "spice_level": spice_level,
-            "cooking_time": cooking_time
-        }
-        fetch_recipes(payload)
-
-# -----------------------------------------------
-# DISPLAY RESULTS OR ERRORS
-# -----------------------------------------------
-if st.session_state.error_message:
-    st.markdown(f"<div class='error-box'>{st.session_state.error_message}</div>", unsafe_allow_html=True)
-    if st.button("🔄 Try Again"):
-        st.session_state.error_message = ""
-        st.session_state.recipes_list = []
-        st.session_state.ingredients_list = []
-        st.session_state.show_results = False
-        st.rerun()
-
-elif st.session_state.show_results and st.session_state.recipes_list:
-    st.subheader("🍴 Recommended Dishes:")
-
-    for i, recipe_data in enumerate(st.session_state.recipes_list):
-        dish_name = list(recipe_data.keys())[0]  
-        steps = recipe_data.get(dish_name, [])  
-        dish_ingredients = st.session_state.ingredients_list[i]  
-
-        with st.expander(f"🥘 {dish_name} (Click to View)"):
-            st.markdown("**🛒 Ingredients:**")
-            formatted_ingredients = "\n".join(f"- {item}" for item in dish_ingredients)
-            st.markdown(f"{formatted_ingredients}")
-
-            st.markdown("**📜 Recipe Steps:**")
-            formatted_steps = "\n\n".join(steps) if isinstance(steps, list) else steps.replace("\n", "\n\n")
-            st.markdown(f"{formatted_steps}")
-
-    if st.button("🔄 Try Again"):
-        st.session_state.recipes_list = []
-        st.session_state.ingredients_list = []
-        st.session_state.show_results = False
-        st.rerun()
+# Page Router
+if st.session_state.current_page == "home":
+    home_page()
+elif st.session_state.current_page == "results":
+    results_page()
